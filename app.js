@@ -76110,6 +76110,21 @@ Ext.application({
 
     launch: function() {
         console.debug("launch 1");
+
+
+        document.addEventListener("deviceready",function () {
+            console.debug("deviceready");
+            document.addEventListener("backbutton",function () {
+                     console.debug("back");
+                      MDanalog.getController("MainView").onBack();
+                    },false);
+        },false);
+
+
+        console.debug("after setting devicereadsy");
+
+
+
         var me = this;
         MDanalog.app = this;
         MDanalog.getController = function(c) {
@@ -76280,14 +76295,6 @@ Ext.application({
         });
 
 
-
-        document.addEventListener("deviceready",function () {
-            console.debug("deviceready");
-            document.addEventListener("backbutton",function () {
-                     console.debug("back");
-                      MDanalog.getController("MainView").onBack();
-                    },false);
-        },false);
 
 
         MDanalog.beforeLoad = function(store) {
