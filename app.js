@@ -62280,6 +62280,158 @@ Ext.define('Ext.dataview.List', {
     }
 });
 
+/**
+ * The DelayedTask class provides a convenient way to "buffer" the execution of a method,
+ * performing `setTimeout` where a new timeout cancels the old timeout. When called, the
+ * task will wait the specified time period before executing. If during that time period,
+ * the task is called again, the original call will be canceled. This continues so that
+ * the function is only called a single time for each iteration.
+ *
+ * This method is especially useful for things like detecting whether a user has finished
+ * typing in a text field. An example would be performing validation on a keypress. You can
+ * use this class to buffer the keypress events for a certain number of milliseconds, and
+ * perform only if they stop for that amount of time.
+ *
+ * Using {@link Ext.util.DelayedTask} is very simple:
+ *
+ *     //create the delayed task instance with our callback
+ *     var task = Ext.create('Ext.util.DelayedTask', {
+ *          fn: function() {
+ *             console.log('callback!');
+ *          }
+ *     });
+ *
+ *     task.delay(1500); //the callback function will now be called after 1500ms
+ *
+ *     task.cancel(); //the callback function will never be called now, unless we call delay() again
+ *
+ * ## Example
+ *
+ *     @example
+ *     //create a textfield where we can listen to text
+ *     var field = Ext.create('Ext.field.Text', {
+ *         xtype: 'textfield',
+ *         label: 'Length: 0'
+ *     });
+ *
+ *     //add the textfield into a fieldset
+ *     Ext.Viewport.add({
+ *         xtype: 'formpanel',
+ *         items: [{
+ *             xtype: 'fieldset',
+ *             items: [field],
+ *             instructions: 'Type into the field and watch the count go up after 500ms.'
+ *         }]
+ *     });
+ *
+ *     //create our delayed task with a function that returns the fields length as the fields label
+ *     var task = Ext.create('Ext.util.DelayedTask', function() {
+ *         field.setLabel('Length: ' + field.getValue().length);
+ *     });
+ *
+ *     // Wait 500ms before calling our function. If the user presses another key
+ *     // during that 500ms, it will be canceled and we'll wait another 500ms.
+ *     field.on('keyup', function() {
+ *         task.delay(500);
+ *     });
+ *
+ * @constructor
+ * The parameters to this constructor serve as defaults and are not required.
+ * @param {Function} fn The default function to call.
+ * @param {Object} scope The default scope (The `this` reference) in which the function is called. If
+ * not specified, `this` will refer to the browser window.
+ * @param {Array} args The default Array of arguments.
+ */
+Ext.define('Ext.util.DelayedTask', {
+    config: {
+        interval: null,
+        delay: null,
+        fn: null,
+        scope: null,
+        args: null
+    },
+
+    constructor: function(fn, scope, args) {
+        var config = {
+            fn: fn,
+            scope: scope,
+            args: args
+        };
+
+        this.initConfig(config);
+    },
+
+    /**
+     * Cancels any pending timeout and queues a new one.
+     * @param {Number} delay The milliseconds to delay
+     * @param {Function} newFn Overrides the original function passed when instantiated.
+     * @param {Object} newScope Overrides the original `scope` passed when instantiated. Remember that if no scope
+     * is specified, `this` will refer to the browser window.
+     * @param {Array} newArgs Overrides the original `args` passed when instantiated.
+     */
+    delay: function(delay, newFn, newScope, newArgs) {
+        var me = this;
+
+        //cancel any existing queued functions
+        me.cancel();
+
+        //set all the new configurations
+
+        if (Ext.isNumber(delay)) {
+            me.setDelay(delay);
+        }
+
+        if (Ext.isFunction(newFn)) {
+            me.setFn(newFn);
+        }
+
+        if (newScope) {
+            me.setScope(newScope);
+        }
+
+        if (newScope) {
+            me.setArgs(newArgs);
+        }
+
+        //create the callback method for this delayed task
+        var call = function() {
+            me.getFn().apply(me.getScope(), me.getArgs() || []);
+            me.cancel();
+        };
+
+        me.setInterval(setInterval(call, me.getDelay()));
+    },
+
+    /**
+     * Cancel the last queued timeout
+     */
+    cancel: function() {
+        this.setInterval(null);
+    },
+
+    /**
+     * @private
+     * Clears the old interval
+     */
+    updateInterval: function(newInterval, oldInterval) {
+        if (oldInterval) {
+            clearInterval(oldInterval);
+        }
+    },
+
+    /**
+     * @private
+     * Changes the value into an array if it isn't one.
+     */
+    applyArgs: function(config) {
+        if (!Ext.isArray(config)) {
+            config = [config];
+        }
+
+        return config;
+    }
+});
+
 // Using @mixins to include all members of Ext.event.Touch
 // into here to keep documentation simpler
 /**
@@ -73601,7 +73753,7 @@ Ext.define('MDanalog.view.MainView', {
     alias: 'widget.mainview',
 
                
-                    
+                         
                      
                             
                         
@@ -73618,33 +73770,34 @@ Ext.define('MDanalog.view.MainView', {
         defaultBackButtonText: 'חזרה',
         items: [
             {
-                xtype: 'panel',
+                xtype: 'formpanel',
                 itemId: 'main-panel',
                 layout: 'vbox',
+                enableSubmissionForm: false,
                 items: [
                     {
                         xtype: 'container',
+                        style: 'direction:rtl',
                         layout: {
                             type: 'hbox',
                             align: 'center'
                         },
                         items: [
                             {
+                                xtype: 'textfield',
+                                flex: 1,
+                                itemId: 'words',
+                                labelAlign: 'right',
+                                labelCls: 'right',
+                                labelWidth: '20%',
+                                placeHolder: 'הקש מלים לאיתור'
+                            },
+                            {
                                 xtype: 'button',
                                 itemId: 'button-search',
                                 margin: '3 0 0 3 ',
                                 ui: 'action',
                                 text: 'איתור'
-                            },
-                            {
-                                xtype: 'textfield',
-                                flex: 1,
-                                itemId: 'words',
-                                inputCls: 'right',
-                                labelAlign: 'right',
-                                labelCls: 'right',
-                                labelWidth: '20%',
-                                placeHolder: 'הקש מלים לאיתור'
                             }
                         ]
                     },
@@ -74246,6 +74399,9 @@ Ext.define('MDanalog.controller.Main', {
             "panel#main-panel": {
                 show: 'onPanelShow'
             },
+            "textfield#words": {
+                keyup: 'onEnter'
+            },
             "button#button-search": {
                 tap: 'onSearchItems'
             },
@@ -74266,6 +74422,11 @@ Ext.define('MDanalog.controller.Main', {
 
     onPanelShow: function(component, eOpts) {
         this.getWords().focus();
+    },
+
+    onEnter: function(textfield, e, eOpts) {
+        if (13==e.event.keyCode) {this.onSearchItems();}
+
     },
 
     onSearchItems: function(button, e, eOpts) {
@@ -74428,9 +74589,9 @@ Ext.define('MDanalog.view.SearchManufact', {
     alias: 'widget.searchmanufact',
 
                
+                         
                             
-                        
-                        
+                       
       
 
     config: {
@@ -74438,35 +74599,45 @@ Ext.define('MDanalog.view.SearchManufact', {
         layout: 'vbox',
         items: [
             {
-                xtype: 'list',
-                flex: 1,
-                itemId: 'mylist6',
-                emptyText: 'אין רשומות להצגה',
-                itemTpl: [
-                    '<div class=\'right\'>',
-                    '    <div class=\'inline\'>{manufactname}</div>',
-                    '    <div class=\'inline\' style=\'float:left\'>{Booth}</div>',
-                    '</div>'
-                ],
-                pressedCls: 'x-item-pressed-no-show',
-                selectedCls: 'x-item-selected-no-show',
-                store: 'FManufacts',
+                xtype: 'container',
+                style: 'direction:rtl',
                 items: [
                     {
                         xtype: 'textfield',
                         docked: 'top',
                         itemId: 'mytextfield1',
-                        inputCls: 'right',
                         label: '',
                         placeHolder: 'הקש מחרוזת לחיפוש'
                     }
                 ]
+            },
+            {
+                xtype: 'container',
+                cls: 'right',
+                hidden: true,
+                html: 'יש עוד... אנא הקש עוד אותיות לצמצום החיפוש',
+                itemId: 'has-more-label',
+                style: 'color:red;text-align:center'
+            },
+            {
+                xtype: 'list',
+                flex: 1,
+                itemId: 'mylist6',
+                emptyText: 'אין רשומות להצגה',
+                itemTpl: [
+                    '<div>',
+                    '    <span style=\'float:right\'>{manufactname}</span>',
+                    '    <span style=\'float:left\'>{Booth}</span>',
+                    '</div>'
+                ],
+                pressedCls: 'x-item-pressed-no-show',
+                selectedCls: 'x-item-selected-no-show',
+                store: 'FManufacts'
             }
         ],
         listeners: [
             {
                 fn: 'onMytextfield1Keyup',
-                delay: 300,
                 event: 'keyup',
                 delegate: '#mytextfield1'
             },
@@ -74479,32 +74650,69 @@ Ext.define('MDanalog.view.SearchManufact', {
     },
 
     onMytextfield1Keyup: function(textfield, e, eOpts) {
-        var s = textfield.getValue();
-        var store = Ext.getStore("Manufacts");
-        var fStore = Ext.getStore("FManufacts");
-        if (s.length>1) {
+
+        function filterList ()
+        {
+            var s = textfield.getValue();
+            var store = Ext.getStore("Manufacts");
+            var fStore = Ext.getStore("FManufacts");
+            //fStore.suspendEvents();
             fStore.removeAll();
-            store.each(function(r){
-                var n = r.get("manufactname");
-                var b = r.get("Booth");
-                if (Ext.isEmpty(b)) {
-                    b = 'לא ביריד';
-                }
-                idx = n.indexOf(s);
-                if (idx>=0) {
-                    fStore.add({
-                        manufactname:n,
-                        Booth:b
-                    });
-                }
-            });
+            hasMore = false;
+            if (s.length>0) {
+                var count = 0;
+                var a = [];
+                store.each(function(r){
+                    if (count<11) {
+                        var n = r.get("manufactname");
+                        var b = r.get("Booth");
+                        if (Ext.isEmpty(b)) {
+                            b = 'לא ביריד';
+                        }
+                        idx = n.indexOf(s);
+
+                        if (idx>=0) {
+                            if (count<10) {
+                                count++;
+                                a.push({
+                                    manufactname:n,
+                                    Booth:b
+                                });
+                            } else
+                            {
+                                hasMore=true;
+                            }
+                        }
+                    }
+                });
+                fStore.setData(a);
+            }
+            if (hasMore) {textfield.up('panel').showHasMore();}
+            //fStore.resumeEvents();
         }
+
+        if (!MDanalog.taskManufacts) {
+            MDanalog.taskManufacts = Ext.create('Ext.util.DelayedTask',
+                  filterList);
+        }
+
+        textfield.up('panel').hideHasMore();
+        MDanalog.taskManufacts.delay(500,filterList,this);
 
 
     },
 
     onMytextfield1Clearicontap: function(textfield, e, eOpts) {
         Ext.getStore("FManufacts").removeAll();
+        textfield.up('panel').hideHasMore();
+    },
+
+    hideHasMore: function() {
+        this.down("#has-more-label").hide();
+    },
+
+    showHasMore: function() {
+        this.down("#has-more-label").show();
     }
 
 });
@@ -74606,6 +74814,10 @@ Ext.define('MDanalog.controller.MainView', {
 
     setTitle: function(value) {
         this.getMainView().getNavigationBar().setTitle(value);
+    },
+
+    onBack: function() {
+
     }
 
 });
@@ -76055,6 +76267,10 @@ Ext.application({
             }
         });
 
+
+        document.addEventListener("backbutton",function () {
+          MDanalog.getController("MainView").onBack();
+        });
 
         Ext.create('MDanalog.view.MainView', {fullscreen: true});
     }
