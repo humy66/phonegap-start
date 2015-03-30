@@ -75891,8 +75891,19 @@ Ext.define('MDanalog.store.Items', {
                 type: 'json',
                 rootProperty: 'data'
             }
-        }
+        },
+        listeners: [
+            {
+                fn: 'onJsonstoreBeforeLoad',
+                event: 'beforeload'
+            }
+        ]
+    },
+
+    onJsonstoreBeforeLoad: function(store, operation, eOpts) {
+        MDanalog.beforeLoad(store);
     }
+
 });
 
 /*
@@ -76269,9 +76280,26 @@ Ext.application({
 
 
         document.addEventListener("backbutton",function () {
+            alert('back');
           MDanalog.getController("MainView").onBack();
         });
 
+
+        MDanalog.beforeLoad = function(store) {
+            var proxy = store.getProxy();
+            var url = proxy.getUrl();
+            var a = url.split("="); // query=
+            if (a.length>1) {
+                url = MDanalog.url + "?query="+a[1];
+                proxy.setUrl(url);
+
+            } else
+
+            if (url.indexOf(MDanalog.url)==-1) {
+                url = MDanalog.url + url.substr(2);
+                proxy.setUrl(url);
+            }
+        };
         Ext.create('MDanalog.view.MainView', {fullscreen: true});
     }
 
