@@ -76109,7 +76109,7 @@ Ext.application({
     name: 'MDanalog',
 
     launch: function() {
-        alert('launchh 1');
+        console.debug("launch 1");
         var me = this;
         MDanalog.app = this;
         MDanalog.getController = function(c) {
@@ -76282,9 +76282,9 @@ Ext.application({
 
 
         document.addEventListener("deviceready",function () {
-            alert("deviceready");
+            console.debug("deviceready");
             document.addEventListener("backbutton",function () {
-                     alert('back');
+                     console.debug("back");
                       MDanalog.getController("MainView").onBack();
                     },false);
         },false);
