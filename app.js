@@ -76279,10 +76279,13 @@ Ext.application({
         });
 
 
-        document.addEventListener("backbutton",function () {
-                alert('back');
-                  MDanalog.getController("MainView").onBack();
-                },true);
+
+        document.addEventListener("deviceready",function () {
+            document.addEventListener("backbutton",function () {
+                    alert('back');
+                      MDanalog.getController("MainView").onBack();
+                    },false);
+        },false);
 
 
         MDanalog.beforeLoad = function(store) {
@@ -76291,7 +76294,6 @@ Ext.application({
             var a = url.split("="); // query=
             if (a.length>1) {
                 url = MDanalog.url + "?query="+a[1];
-                alert("url="+url);
                 proxy.setUrl(url);
 
             } else
