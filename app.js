@@ -74817,6 +74817,7 @@ Ext.define('MDanalog.controller.MainView', {
     },
 
     onBack: function() {
+        this.getMainView().pop();
 
     }
 
@@ -76109,20 +76110,30 @@ Ext.application({
     name: 'MDanalog',
 
     launch: function() {
-        console.debug("launch 1");
-
-
         document.addEventListener("deviceready",function () {
-            console.debug("deviceready");
             document.addEventListener("backbutton",function () {
-                     console.debug("back");
-                      MDanalog.getController("MainView").onBack();
+                var c = MDanalog.getController("MainView");
+                if (c.getLevel()===0) {
+                     Ext.Msg.show({
+                            title : 'לחצת על מקש היציאה',
+                            width: 300,
+                            message: 'האם ברצונך לצאת',
+                            buttons : [
+                                {text:'לא, טעות',itemId:'no'},
+                                {text:'כן',itemId:'yes',ui:'action'}
+                            ],
+                            fn : function (btn) {
+                                if (btn=="yes") {
+                                    navigator.app.exitApp();
+                                }
+                            }
+                    });
+                } else {
+                      c.onBack();
+                }
+
                     },false);
         },false);
-
-
-        console.debug("after setting devicereadsy");
-
 
 
         var me = this;
