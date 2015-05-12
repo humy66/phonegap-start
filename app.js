@@ -62281,6 +62281,611 @@ Ext.define('Ext.dataview.List', {
 });
 
 /**
+ * @private
+ *
+ * This object handles communication between the WebView and Sencha's native shell.
+ * Currently it has two primary responsibilities:
+ *
+ * 1. Maintaining unique string ids for callback functions, together with their scope objects
+ * 2. Serializing given object data into HTTP GET request parameters
+ *
+ * As an example, to capture a photo from the device's camera, we use `Ext.device.Camera.capture()` like:
+ *
+ *     Ext.device.Camera.capture(
+ *         function(dataUri){
+ *             // Do something with the base64-encoded `dataUri` string
+ *         },
+ *         function(errorMessage) {
+ *
+ *         },
+ *         callbackScope,
+ *         {
+ *             quality: 75,
+ *             width: 500,
+ *             height: 500
+ *         }
+ *     );
+ *
+ * Internally, `Ext.device.Communicator.send()` will then be invoked with the following argument:
+ *
+ *     Ext.device.Communicator.send({
+ *         command: 'Camera#capture',
+ *         callbacks: {
+ *             onSuccess: function() {
+ *                 // ...
+ *             },
+ *             onError: function() {
+ *                 // ...
+ *             }
+ *         },
+ *         scope: callbackScope,
+ *         quality: 75,
+ *         width: 500,
+ *         height: 500
+ *     });
+ *
+ * Which will then be transformed into a HTTP GET request, sent to native shell's local
+ * HTTP server with the following parameters:
+ *
+ *     ?quality=75&width=500&height=500&command=Camera%23capture&onSuccess=3&onError=5
+ *
+ * Notice that `onSuccess` and `onError` have been converted into string ids (`3` and `5`
+ * respectively) and maintained by `Ext.device.Communicator`.
+ *
+ * Whenever the requested operation finishes, `Ext.device.Communicator.invoke()` simply needs
+ * to be executed from the native shell with the corresponding ids given before. For example:
+ *
+ *     Ext.device.Communicator.invoke('3', ['DATA_URI_OF_THE_CAPTURED_IMAGE_HERE']);
+ *
+ * will invoke the original `onSuccess` callback under the given scope. (`callbackScope`), with
+ * the first argument of 'DATA_URI_OF_THE_CAPTURED_IMAGE_HERE'
+ *
+ * Note that `Ext.device.Communicator` maintains the uniqueness of each function callback and
+ * its scope object. If subsequent calls to `Ext.device.Communicator.send()` have the same
+ * callback references, the same old ids will simply be reused, which guarantee the best possible
+ * performance for a large amount of repetitive calls.
+ */
+Ext.define('Ext.device.communicator.Default', {
+
+    SERVER_URL: 'http://localhost:3000', // Change this to the correct server URL
+
+    callbackDataMap: {},
+
+    callbackIdMap: {},
+
+    idSeed: 0,
+
+    globalScopeId: '0',
+
+    generateId: function() {
+        return String(++this.idSeed);
+    },
+
+    getId: function(object) {
+        var id = object.$callbackId;
+
+        if (!id) {
+            object.$callbackId = id = this.generateId();
+        }
+
+        return id;
+    },
+
+    getCallbackId: function(callback, scope) {
+        var idMap = this.callbackIdMap,
+            dataMap = this.callbackDataMap,
+            id, scopeId, callbackId, data;
+
+        if (!scope) {
+            scopeId = this.globalScopeId;
+        } else if (scope.isIdentifiable) {
+            scopeId = scope.getId();
+        } else {
+            scopeId = this.getId(scope);
+        }
+
+        callbackId = this.getId(callback);
+
+        if (!idMap[scopeId]) {
+            idMap[scopeId] = {};
+        }
+
+        if (!idMap[scopeId][callbackId]) {
+            id = this.generateId();
+            data = {
+                callback: callback,
+                scope: scope
+            };
+
+            idMap[scopeId][callbackId] = id;
+            dataMap[id] = data;
+        }
+
+        return idMap[scopeId][callbackId];
+    },
+
+    getCallbackData: function(id) {
+        return this.callbackDataMap[id];
+    },
+
+    invoke: function(id, args) {
+        var data = this.getCallbackData(id);
+
+        data.callback.apply(data.scope, args);
+    },
+
+    send: function(args) {
+        var callbacks, scope, name, callback;
+
+        if (!args) {
+            args = {};
+        } else if (args.callbacks) {
+            callbacks = args.callbacks;
+            scope = args.scope;
+
+            delete args.callbacks;
+            delete args.scope;
+
+            for (name in callbacks) {
+                if (callbacks.hasOwnProperty(name)) {
+                    callback = callbacks[name];
+
+                    if (typeof callback == 'function') {
+                        args[name] = this.getCallbackId(callback, scope);
+                    }
+                }
+            }
+        }
+
+        args.__source = document.location.href;
+
+        var result = this.doSend(args);
+
+        return (result && result.length > 0) ? JSON.parse(result) : null;
+    },
+
+    doSend: function(args) {
+        var xhr = new XMLHttpRequest();
+
+        xhr.open('GET', this.SERVER_URL + '?' + Ext.Object.toQueryString(args) + '&_dc=' + new Date().getTime(), false);
+
+        // wrap the request in a try/catch block so we can check if any errors are thrown and attempt to call any
+        // failure/callback functions if defined
+        try {
+            xhr.send(null);
+
+            return xhr.responseText;
+        } catch(e) {
+            if (args.failure) {
+                this.invoke(args.failure);
+            } else if (args.callback) {
+                this.invoke(args.callback);
+            }
+        }
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.communicator.Android', {
+    extend:  Ext.device.communicator.Default ,
+
+    doSend: function(args) {
+        return window.Sencha.action(JSON.stringify(args));
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.Communicator', {
+               
+                                          
+                                         
+      
+
+    singleton: true,
+
+    constructor: function() {
+        if (Ext.os.is.Android) {
+            return new Ext.device.communicator.Android();
+        }
+
+        return new Ext.device.communicator.Default();
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.device.Abstract', {
+    mixins: [ Ext.mixin.Observable ],
+
+    /**
+     * @event schemeupdate
+     * Event which is fired when your Sencha Native packaged application is opened from another application using a custom URL scheme.
+     * 
+     * This event will only fire if the application was already open (in other words; `onReady` was already fired). This means you should check
+     * if {@link Ext.device.Device#scheme} is set in your Application `launch`/`onReady` method, and perform any needed changes for that URL (if defined).
+     * Then listen to this event for future changed.
+     *
+     * ## Example
+     *
+     *     Ext.application({
+     *         name: 'Sencha',
+     *         requires: ['Ext.device.Device'],
+     *         launch: function() {
+     *             if (Ext.device.Device.scheme) {
+     *                 // the application was opened via another application. Do something:
+     *                 console.log('Applicaton opened via another application: ' + Ext.device.Device.scheme.url);
+     *             }
+     *
+     *             // Listen for future changes
+     *             Ext.device.Device.on('schemeupdate', function(device, scheme) {
+     *                 // the application was launched, closed, and then launched another from another application
+     *                 // this means onReady wont be called again ('cause the application is already running in the 
+     *                 // background) - but this event will be fired
+     *                 console.log('Applicated reopened via another application: ' + scheme.url);
+     *             }, this);
+     *         }
+     *     });
+     *
+     * __Note:__ This currently only works with the Sencha Native Packager. If you attempt to listen to this event when packaged with
+     * PhoneGap or simply in the browser, it will never fire.**
+     * 
+     * @param {Ext.device.Device} this The instance of Ext.device.Device
+     * @param {Object/Boolean} scheme The scheme information, if opened via another application
+     * @param {String} scheme.url The URL that was opened, if this application was opened via another application. Example: `sencha:`
+     * @param {String} scheme.sourceApplication The source application that opened this application. Example: `com.apple.safari`.
+     */
+    
+    /**
+     * @property {String} name
+     * Returns the name of the current device. If the current device does not have a name (for example, in a browser), it will
+     * default to `not available`.
+     *
+     *     alert('Device name: ' + Ext.device.Device.name);
+     */
+    name: 'not available',
+
+    /**
+     * @property {String} uuid
+     * Returns a unique identifier for the current device. If the current device does not have a unique identifier (for example,
+     * in a browser), it will default to `anonymous`.
+     *
+     *     alert('Device UUID: ' + Ext.device.Device.uuid);
+     */
+    uuid: 'anonymous',
+
+    /**
+     * @property {String} platform
+     * The current platform the device is running on.
+     *
+     *     alert('Device platform: ' + Ext.device.Device.platform);
+     */
+    platform: Ext.os.name,
+
+    /**
+     * @property {Object/Boolean} scheme
+     * 
+     */
+    scheme: false,
+    
+    /**
+     * Opens a specified URL. The URL can contain a custom URL Scheme for another app or service:
+     *
+     *     // Safari
+     *     Ext.device.Device.openURL('http://sencha.com');
+     *
+     *     // Telephone
+     *     Ext.device.Device.openURL('tel:6501231234');
+     *
+     *     // SMS with a default number
+     *     Ext.device.Device.openURL('sms:+12345678901');
+     *
+     *     // Email client
+     *     Ext.device.Device.openURL('mailto:rob@sencha.com');
+     *
+     * You can find a full list of available URL schemes here: [http://wiki.akosma.com/IPhone_URL_Schemes](http://wiki.akosma.com/IPhone_URL_Schemes).
+     *
+     * __Note:__ This currently only works with the Sencha Native Packager. Attempting to use this on PhoneGap, iOS Simulator
+     * or the browser will simply result in the current window location changing.**
+     *
+     * If successful, this will close the application (as another one opens).
+     * 
+     * @param {String} url The URL to open
+     */
+    openURL: function(url) {
+        window.location = url;
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.device.Cordova', {
+    alternateClassName: 'Ext.device.device.PhoneGap',
+
+    extend:  Ext.device.device.Abstract ,
+
+    availableListeners: [
+        'pause',
+        'resume',
+        'backbutton',
+        'batterycritical',
+        'batterylow',
+        'batterystatus',
+        'menubutton',
+        'searchbutton',
+        'startcallbutton',
+        'endcallbutton',
+        'volumeupbutton',
+        'volumedownbutton'
+    ],
+
+    constructor: function() {
+        // We can't get the device details until the device is ready, so lets wait.
+        if (Ext.isReady) {
+            this.onReady();
+        } else {
+            Ext.onReady(this.onReady, this, {single: true});
+        }
+    },
+
+    /**
+     * @property {String} cordova
+     * Returns the version of Cordova running on the device.
+     *
+     *     alert('Device cordova: ' + Ext.device.Device.cordova);
+     */
+
+    /**
+     * @property {String} version
+     * Returns the operating system version.
+     *
+     *     alert('Device Version: ' + Ext.device.Device.version);
+     */
+
+    /**
+     * @property {String} model
+     * Returns the device's model name.
+     *
+     *     alert('Device Model: ' + Ext.device.Device.model);
+     */
+    
+    /**
+     * @event pause
+     * Fires when the application goes into the background
+     */
+    
+    /**
+     * @event resume
+     * Fires when the application goes into the foreground
+     */
+    
+    /**
+     * @event batterycritical
+     * This event that fires when a Cordova application detects the percentage of battery 
+     * has reached the critical battery threshold.
+     */
+    
+    /**
+     * @event batterylow
+     * This event that fires when a Cordova application detects the percentage of battery 
+     * has reached the low battery threshold.
+     */
+    
+    /**
+     * @event batterystatus
+     * This event that fires when a Cordova application detects the percentage of battery 
+     * has changed by at least 1 percent.
+     */
+    
+    /**
+     * @event backbutton
+     * This is an event that fires when the user presses the back button.
+     */
+    
+    /**
+     * @event menubutton
+     * This is an event that fires when the user presses the menu button.
+     */
+    
+    /**
+     * @event searchbutton
+     * This is an event that fires when the user presses the search button.
+     */
+    
+    /**
+     * @event startcallbutton
+     * This is an event that fires when the user presses the start call button.
+     */
+    
+    /**
+     * @event endcallbutton
+     * This is an event that fires when the user presses the end call button.
+     */
+    
+    /**
+     * @event volumeupbutton
+     * This is an event that fires when the user presses the volume up button.
+     */
+    
+    /**
+     * @event volumedownbutton
+     * This is an event that fires when the user presses the volume down button.
+     */
+
+    onReady: function() {
+        var me = this,
+            device = window.device;
+
+        me.name = device.name || device.model;
+        me.cordova = device.cordova;
+        me.platform =  device.platform || Ext.os.name;
+        me.uuid =  device.uuid;
+        me.version = device.version;
+        me.model = device.model;
+    },
+
+    doAddListener: function(name) {
+        if (!this.addedListeners) {
+            this.addedListeners = [];
+        }
+
+        if (this.availableListeners.indexOf(name) != -1 && this.addedListeners.indexOf(name) == -1) {
+            // Add the listeners
+            this.addedListeners.push(name);
+
+            document.addEventListener(name, function() {
+                me.fireEvent(name, me);
+            });
+        }
+
+        Ext.device.Device.mixins.observable.doAddListener.apply(Ext.device.Device.mixins.observable, arguments);
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.device.Sencha', {
+    extend:  Ext.device.device.Abstract ,
+
+    constructor: function() {
+        this.name = device.name;
+        this.uuid = device.uuid;
+        this.platform = device.platformName || Ext.os.name;
+        this.scheme = Ext.device.Communicator.send({
+            command: 'OpenURL#getScheme',
+            sync: true
+        }) || false;
+
+        Ext.device.Communicator.send({
+            command: 'OpenURL#watch',
+            callbacks: {
+                callback: function(scheme) {
+                    this.scheme = scheme || false;
+                    this.fireEvent('schemeupdate', this, this.scheme);
+                }
+            },
+            scope: this
+        });
+    },
+
+    openURL: function(url) {
+        Ext.device.Communicator.send({
+            command: 'OpenURL#open',
+            url: url
+        });
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.device.Simulator', {
+    extend:  Ext.device.device.Abstract 
+});
+
+/**
+ * Provides a cross device way to get information about the device your application is running on. There are 3 different implementations:
+ *
+ * - Sencha Packager
+ * - [Cordova](http://cordova.apache.org/docs/en/2.5.0/cordova_device_device.md.html#Device)
+ * - Simulator
+ *
+ * ## Examples
+ *
+ * #### Device Information
+ *
+ * Getting the device information:
+ *
+ *     Ext.application({
+ *         name: 'Sencha',
+ *
+ *         // Remember that the Ext.device.Device class *must* be required
+ *         requires: ['Ext.device.Device'],
+ *
+ *         launch: function() {
+ *             alert([
+ *                 'Device name: ' + Ext.device.Device.name,
+ *                 'Device platform: ' + Ext.device.Device.platform,
+ *                 'Device UUID: ' + Ext.device.Device.uuid
+ *             ].join('\n'));
+ *         }
+ *     });
+ *
+ * ### Custom Scheme URL
+ *
+ * Using custom scheme URL to application your application from other applications:
+ *
+ *     Ext.application({
+ *         name: 'Sencha',
+ *         requires: ['Ext.device.Device'],
+ *         launch: function() {
+ *             if (Ext.device.Device.scheme) {
+ *                 // the application was opened via another application. Do something:
+ *                 alert('Applicaton pened via another application: ' + Ext.device.Device.scheme.url);
+ *             }
+ *
+ *             // Listen for future changes
+ *             Ext.device.Device.on('schemeupdate', function(device, scheme) {
+ *                 // the application was launched, closed, and then launched another from another application
+ *                 // this means onReady wont be called again ('cause the application is already running in the 
+ *                 // background) - but this event will be fired
+ *                 alert('Applicated reopened via another application: ' + scheme.url);
+ *             }, this);
+ *         }
+ *     });
+ *
+ * Of course, you must add the custom scheme URL you would like to use when packaging your application.
+ * You can do this by setting the `URLScheme` property inside your `package.json` file (Sencha Native Packager configuration file):
+ *
+ *     {
+ *         ...
+ *         "URLScheme": "sencha",
+ *         ...
+ *     }
+ *
+ * You can change the available URL scheme.
+ *
+ * You can then test it by packaging and installing the application onto a device/iOS Simulator, opening Safari and typing: `sencha:testing`.
+ * The application will launch and it will `alert` the URL you specified.
+ *
+ * **PLEASE NOTE: This currently only works with the Sencha Native Packager. If you attempt to listen to this event when packaged with
+ * PhoneGap or simply in the browser, it will not function.**
+ *
+ * @mixins Ext.device.device.Abstract
+ *
+ * @aside guide native_apis
+ */
+Ext.define('Ext.device.Device', {
+    singleton: true,
+
+               
+                                  
+                                    
+                                   
+                                     
+      
+
+    constructor: function() {
+        var browserEnv = Ext.browser.is;
+        if (browserEnv.WebView) {
+            if (browserEnv.Cordova) {
+                return Ext.create('Ext.device.device.Cordova');
+            } else if (browserEnv.Sencha) {
+                return Ext.create('Ext.device.device.Sencha');
+            }
+        }
+
+        return Ext.create('Ext.device.device.Simulator');
+    }
+});
+
+/**
  * The DelayedTask class provides a convenient way to "buffer" the execution of a method,
  * performing `setTimeout` where a new timeout cancels the old timeout. When called, the
  * task will wait the specified time period before executing. If during that time period,
@@ -73758,6 +74363,7 @@ Ext.define('MDanalog.view.MainView', {
                             
                         
                     
+                  
                       
                            
                      
@@ -73845,9 +74451,37 @@ Ext.define('MDanalog.view.MainView', {
                         style: 'text-align:center;color:red;direction:rtl'
                     },
                     {
+                        xtype: 'container',
+                        cls: 'center',
+                        docked: 'bottom',
+                        height: 40,
+                        html: 'באנר פרסומת',
+                        itemId: 'banner',
+                        layout: 'fit',
+                        items: [
+                            {
+                                xtype: 'image',
+                                height: 201,
+                                maxHeight: 40,
+                                src: '#'
+                            }
+                        ]
+                    },
+                    {
                         xtype: 'toolbar',
                         docked: 'bottom',
                         items: [
+                            {
+                                xtype: 'button',
+                                handler: function(button, e) {
+                                    var i = MDanalog.getFairId();
+                                    var url = MDanalog.fairBucket + i + "/map.jpg";
+
+                                },
+                                itemId: 'fair-map-show-button',
+                                iconCls: 'locate',
+                                text: ''
+                            },
                             {
                                 xtype: 'selectfield',
                                 itemId: 'fair-select',
@@ -73890,6 +74524,12 @@ Ext.define('MDanalog.view.MainView', {
                     itemId: 'menu-btn',
                     iconCls: 'list',
                     text: ''
+                },
+                {
+                    xtype: 'button',
+                    align: 'right',
+                    itemId: 'help-button',
+                    text: '?'
                 }
             ]
         },
@@ -74355,6 +74995,194 @@ Ext.define('MDanalog.view.LoginPanel', {
 });
 
 /*
+ * File: app/view/FairInfoPanel.js
+ *
+ * This file was generated by Sencha Architect version 3.0.4.
+ * http://www.sencha.com/products/architect/
+ *
+ * This file requires use of the Sencha Touch 2.3.x library, under independent license.
+ * License of Sencha Architect does not include license for Sencha Touch 2.3.x. For more
+ * details see http://www.sencha.com/license or contact license@sencha.com.
+ *
+ * This file will be auto-generated each and everytime you save your project.
+ *
+ * Do NOT hand edit this file.
+ */
+
+Ext.define('MDanalog.view.FairInfoPanel', {
+    extend:  Ext.Panel ,
+    alias: 'widget.fairinfopanel',
+
+               
+                     
+                    
+                  
+                            
+                        
+                      
+                    
+      
+
+    config: {
+        itemId: 'mypanel1',
+        layout: 'card',
+        items: [
+            {
+                xtype: 'container',
+                layout: 'vbox',
+                items: [
+                    {
+                        xtype: 'container',
+                        padding: 3,
+                        style: 'direction:rtl',
+                        layout: 'hbox',
+                        items: [
+                            {
+                                xtype: 'button',
+                                handler: function(button, e) {
+                                    if (!MDanalog.BoothPopup) {
+                                        MDanalog.BoothPopup = Ext.widget("boothpopup");
+                                    }
+                                    MDanalog.BoothPopup.showBy(button);
+
+                                },
+                                hidden: true,
+                                ui: 'action',
+                                text: 'איתור מוציא לאור'
+                            },
+                            {
+                                xtype: 'label',
+                                flex: 1,
+                                itemId: 'info-map-booth',
+                                padding: '5 5 0 0 '
+                            }
+                        ]
+                    },
+                    {
+                        xtype: 'container',
+                        flex: 1,
+                        layout: 'fit',
+                        items: [
+                            {
+                                xtype: 'image',
+                                itemId: 'info-map-img',
+                                src: '#'
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                xtype: 'container',
+                layout: 'vbox',
+                items: [
+                    {
+                        xtype: 'list',
+                        flex: 1,
+                        itemId: 'info-event-list',
+                        itemTpl: [
+                            '<div style="direction:rtl">',
+                            '    <div style="font-size:small;">',
+                            '        <div style="display:inline;">{Location}</div>',
+                            '        <div style="float:left;display:inline;">{Date}</div>',
+                            '    </div>',
+                            '    ',
+                            '    <div style="margin-top:5px;">',
+                            '        <span style="color:blue">{Description}</span>',
+                            '        <span style="font-size:small;">{Details}</span>',
+                            '    </div>',
+                            '',
+                            '</div>',
+                            '',
+                            ''
+                        ]
+                    }
+                ]
+            },
+            {
+                xtype: 'container',
+                layout: 'vbox',
+                items: [
+                    {
+                        xtype: 'list',
+                        flex: 1,
+                        itemId: 'info-authorsign-list',
+                        itemTpl: [
+                            '<div style="direction:rtl">',
+                            '    <div style="font-size:small;">',
+                            '        <div style="display:inline;">{manufactname}</div>',
+                            '        <div style="float:left;display:inline;">{Date}</div>',
+                            '    </div>',
+                            '    <div style="margin-top:5px;">',
+                            '        <span style="color:blue">{Description}</span>',
+                            '    </div>',
+                            '',
+                            '</div>',
+                            '',
+                            ''
+                        ]
+                    }
+                ]
+            },
+            {
+                xtype: 'toolbar',
+                docked: 'bottom',
+                hidden: true,
+                items: [
+                    {
+                        xtype: 'spacer'
+                    },
+                    {
+                        xtype: 'button',
+                        itemId: 'info-authorsign',
+                        text: 'סופרים חותמים'
+                    },
+                    {
+                        xtype: 'button',
+                        itemId: 'info-events-btn',
+                        text: 'ארועים'
+                    },
+                    {
+                        xtype: 'button',
+                        itemId: 'info-map-btn',
+                        text: 'מפה'
+                    }
+                ]
+            }
+        ]
+    }
+
+});
+
+/*
+ * File: app/view/HelpPanel.js
+ *
+ * This file was generated by Sencha Architect version 3.0.4.
+ * http://www.sencha.com/products/architect/
+ *
+ * This file requires use of the Sencha Touch 2.3.x library, under independent license.
+ * License of Sencha Architect does not include license for Sencha Touch 2.3.x. For more
+ * details see http://www.sencha.com/license or contact license@sencha.com.
+ *
+ * This file will be auto-generated each and everytime you save your project.
+ *
+ * Do NOT hand edit this file.
+ */
+
+Ext.define('MDanalog.view.HelpPanel', {
+    extend:  Ext.Panel ,
+    alias: 'widget.helppanel',
+
+    config: {
+        height: '100%',
+        id: 'help-panel',
+        itemId: 'help-panel',
+        width: '100%'
+    }
+
+});
+
+/*
  * File: app/controller/Main.js
  *
  * This file was generated by Sencha Architect version 3.0.4.
@@ -74392,7 +75220,18 @@ Ext.define('MDanalog.controller.Main', {
                 selector: 'formpanel#login-panel',
                 xtype: 'loginpanel'
             },
-            splashScreen: 'container#mycontainer7'
+            splashScreen: 'container#mycontainer7',
+            fairInfoPanel: {
+                autoCreate: true,
+                selector: 'panel#mypanel1',
+                xtype: 'fairinfopanel'
+            },
+            infomapimg: 'image#info-map-img',
+            helpPanel: {
+                autoCreate: true,
+                selector: 'panel#mypanel',
+                xtype: 'helppanel'
+            }
         },
 
         control: {
@@ -74416,6 +75255,9 @@ Ext.define('MDanalog.controller.Main', {
             },
             "button#fair-map-show-button": {
                 tap: 'onFairMapShow'
+            },
+            "button#help-button": {
+                tap: 'onHelp'
             }
         }
     },
@@ -74556,6 +75398,25 @@ Ext.define('MDanalog.controller.Main', {
     },
 
     onFairMapShow: function(button, e, eOpts) {
+        var i = MDanalog.getFairId();
+        var url = MDanalog.fairBucket + i + "/map.jpg";
+
+
+        var p = this.getFairInfoPanel();
+        var nav = this.getMainView();
+        nav.push(p);
+        p.down("#info-map-img").setSrc(url);
+        //nav.getNavigationBar().setTitle("מפה");
+
+
+    },
+
+    onHelp: function(button, e, eOpts) {
+        var p = this.getHelpPanel();
+        var url= MDanalog.fairBucket+"help.html";
+        p.setHtml("<iframe src='"+url+"'width='100%' height='100%'><p>Your browser does not support iframes.</p> </iframe>");
+        var nav = this.getMainView();
+        nav.push(p);
 
     },
 
@@ -74768,7 +75629,7 @@ Ext.define('MDanalog.controller.MainView', {
         var bar = navigationview.getNavigationBar();
         var level = this.getLevel();
 
-        console.debug("pop",level);
+        //console.debug("pop",level);
 
         if (level==1) {
             this.setRoot();
@@ -74789,6 +75650,15 @@ Ext.define('MDanalog.controller.MainView', {
             MDanalog.setFairId(1);
         }
         this.setRoot();
+
+        MDanalog.setBanner([
+            "Danacode.png","Danacode.png","Danacode.png"
+
+        ]);
+
+        MDanalog.getBanners();
+
+
     },
 
     onSelectFair: function(selectfield, newValue, oldValue, eOpts) {
@@ -74873,164 +75743,6 @@ Ext.define('MDanalog.controller.CoverView', {
 
     setItem: function(value) {
         this.getMycarousel().setActiveItem(value);
-    }
-
-});
-
-/*
- * File: app/view/FairInfoPanel.js
- *
- * This file was generated by Sencha Architect version 3.0.4.
- * http://www.sencha.com/products/architect/
- *
- * This file requires use of the Sencha Touch 2.3.x library, under independent license.
- * License of Sencha Architect does not include license for Sencha Touch 2.3.x. For more
- * details see http://www.sencha.com/license or contact license@sencha.com.
- *
- * This file will be auto-generated each and everytime you save your project.
- *
- * Do NOT hand edit this file.
- */
-
-Ext.define('MDanalog.view.FairInfoPanel', {
-    extend:  Ext.Panel ,
-    alias: 'widget.fairinfopanel',
-
-               
-                     
-                    
-                  
-                            
-                        
-                      
-                    
-      
-
-    config: {
-        itemId: 'mypanel1',
-        layout: 'card',
-        items: [
-            {
-                xtype: 'container',
-                layout: 'vbox',
-                items: [
-                    {
-                        xtype: 'container',
-                        padding: 3,
-                        style: 'direction:rtl',
-                        layout: 'hbox',
-                        items: [
-                            {
-                                xtype: 'button',
-                                handler: function(button, e) {
-                                    if (!MDanalog.BoothPopup) {
-                                        MDanalog.BoothPopup = Ext.widget("boothpopup");
-                                    }
-                                    MDanalog.BoothPopup.showBy(button);
-
-                                },
-                                ui: 'action',
-                                text: 'איתור מוציא לאור'
-                            },
-                            {
-                                xtype: 'label',
-                                flex: 1,
-                                itemId: 'info-map-booth',
-                                padding: '5 5 0 0 '
-                            }
-                        ]
-                    },
-                    {
-                        xtype: 'container',
-                        flex: 1,
-                        layout: 'fit',
-                        items: [
-                            {
-                                xtype: 'image',
-                                itemId: 'info-map-img',
-                                src: '#'
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                xtype: 'container',
-                layout: 'vbox',
-                items: [
-                    {
-                        xtype: 'list',
-                        flex: 1,
-                        itemId: 'info-event-list',
-                        itemTpl: [
-                            '<div style="direction:rtl">',
-                            '    <div style="font-size:small;">',
-                            '        <div style="display:inline;">{Location}</div>',
-                            '        <div style="float:left;display:inline;">{Date}</div>',
-                            '    </div>',
-                            '    ',
-                            '    <div style="margin-top:5px;">',
-                            '        <span style="color:blue">{Description}</span>',
-                            '        <span style="font-size:small;">{Details}</span>',
-                            '    </div>',
-                            '',
-                            '</div>',
-                            '',
-                            ''
-                        ]
-                    }
-                ]
-            },
-            {
-                xtype: 'container',
-                layout: 'vbox',
-                items: [
-                    {
-                        xtype: 'list',
-                        flex: 1,
-                        itemId: 'info-authorsign-list',
-                        itemTpl: [
-                            '<div style="direction:rtl">',
-                            '    <div style="font-size:small;">',
-                            '        <div style="display:inline;">{manufactname}</div>',
-                            '        <div style="float:left;display:inline;">{Date}</div>',
-                            '    </div>',
-                            '    <div style="margin-top:5px;">',
-                            '        <span style="color:blue">{Description}</span>',
-                            '    </div>',
-                            '',
-                            '</div>',
-                            '',
-                            ''
-                        ]
-                    }
-                ]
-            },
-            {
-                xtype: 'toolbar',
-                docked: 'bottom',
-                items: [
-                    {
-                        xtype: 'spacer'
-                    },
-                    {
-                        xtype: 'button',
-                        itemId: 'info-authorsign',
-                        text: 'סופרים חותמים'
-                    },
-                    {
-                        xtype: 'button',
-                        itemId: 'info-events-btn',
-                        text: 'ארועים'
-                    },
-                    {
-                        xtype: 'button',
-                        itemId: 'info-map-btn',
-                        text: 'מפה'
-                    }
-                ]
-            }
-        ]
     }
 
 });
@@ -75252,6 +75964,57 @@ Ext.define('MDanalog.controller.FairInfo', {
 
     setActiveItem: function(item) {
         this.getFairInfoPanel().setActiveItem(item);
+
+    }
+
+});
+
+/*
+ * File: app/controller/Banner.js
+ *
+ * This file was generated by Sencha Architect version 3.0.4.
+ * http://www.sencha.com/products/architect/
+ *
+ * This file requires use of the Sencha Touch 2.3.x library, under independent license.
+ * License of Sencha Architect does not include license for Sencha Touch 2.3.x. For more
+ * details see http://www.sencha.com/license or contact license@sencha.com.
+ *
+ * This file will be auto-generated each and everytime you save your project.
+ *
+ * Do NOT hand edit this file.
+ */
+
+Ext.define('MDanalog.controller.Banner', {
+    extend:  Ext.app.Controller ,
+
+    config: {
+        refs: {
+            banner: 'container#banner'
+        },
+
+        control: {
+            "container#banner": {
+                tap: 'onContainerTap'
+            }
+        }
+    },
+
+    onContainerTap: function(container) {
+
+    },
+
+    setBanner: function(Banners) {
+        MDanalog.Banners = Banners;
+        var f = MDanalog.getFairId();
+        var url = Banners[f-1];
+        if (url != MDanalog.Banner) {
+            MDanalog.Banner = url;
+            url= MDanalog.fairBucket+"Images/"+url;
+            this.getBanner().down("image").setSrc(url);
+        }
+
+
+        //.setHtml("<iframe src='"+url+"' width='100%' height='100%'><p>Your browser does not support iframes.</p> </iframe>");
 
     }
 
@@ -76069,6 +76832,10 @@ Ext.Loader.setConfig({
 
 
 Ext.application({
+
+               
+                           
+      
     models: [
         'Item',
         'Fair',
@@ -76096,7 +76863,8 @@ Ext.application({
         'BoothPopUp',
         'SearchManufact',
         'MapContainer',
-        'PinchZoomImage'
+        'PinchZoomImage',
+        'HelpPanel'
     ],
     controllers: [
         'Login',
@@ -76105,7 +76873,8 @@ Ext.application({
         'CoverView',
         'Fair',
         'Menu',
-        'FairInfo'
+        'FairInfo',
+        'Banner'
     ],
     name: 'MDanalog',
 
@@ -76147,12 +76916,14 @@ Ext.application({
         MDanalog.url = "../Danalog.ashx";
         if (document.location.protocol=="file:")
         {
-            MDanalog.url = "http://gov-mobile.danacode.co.il/bos-8/Danalog.ashx";
+            //MDanalog.url = "http://gov-mobile.danacode.co.il/bos-8/Danalog.ashx";
+            MDanalog.url = "http://mobile.danacode.co.il/bos-8/Danalog.ashx";
         }
 
         MDanalog.fairBucket = "http://s3-eu-west-1.amazonaws.com/fairweek/";
         MDanalog.isFairWeek = false;
 
+        MDanalog.Banners = "";
         MDanalog.mask = function (c) {
             if (c) {
                 c.setMasked({xtype:'loadmask'});
@@ -76203,7 +76974,7 @@ Ext.application({
 
         Ext.Ajax.on("beforerequest",function(conn,options,eOpts) {
             if (options.params){
-                Ext.apply(options.params,{version:MDanalog.version});
+                Ext.apply(options.params,{version:MDanalog.version,uuid:Ext.device.Device.uuid,fairId:MDanalog.getFairId()});
             } else
             {
                 options.params={version:MDanalog.version};
@@ -76264,6 +77035,10 @@ Ext.application({
         };
 
 
+        MDanalog.setBanner = function (url) {
+            MDanalog.getController("Banner").setBanner(url);
+        };
+
         //************************ Menu *****************************
         MDanalog.menu = Ext.widget("mainmenu");
         MDanalog.menuLocation = "left";
@@ -76322,6 +77097,17 @@ Ext.application({
                 url = MDanalog.url + url.substr(2);
                 proxy.setUrl(url);
             }
+        };
+
+        MDanalog.BannerTimeoutMS = 1000 * 20;
+        MDanalog.getBanners = function () {
+            MDanalog.get("GetBanners",{fairId:MDanalog.getFairId()},function(o) {
+                if (o.success) {
+                    MDanalog.setBanner(o.Banners);
+                    MDanalog.BannerTimeoutMS = o.BannerTimeoutMS;
+                }
+            });
+            setTimeout(function(){MDanalog.getBanners();},MDanalog.BannerTimeoutMS);
         };
         Ext.create('MDanalog.view.MainView', {fullscreen: true});
     }

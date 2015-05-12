@@ -7,3 +7,6 @@
 .inline {
     display:inline;
 }
+#help-panel .x-innerhtml {
+    height : 100%;
+}
