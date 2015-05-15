@@ -74373,13 +74373,34 @@ Ext.define('MDanalog.controller.Banner', {
     },
 
     setBanner: function(Banners) {
-        MDanalog.Banners = Banners;
+        if (Banners) {
+            MDanalog.Banners = Banners;
+        } else
+        {
+            Banners = MDanalog.Banners;
+        }
         var f = MDanalog.getFairId();
         var url = Banners[f-1];
         if (url != MDanalog.Banner) {
             MDanalog.Banner = url;
-            url= MDanalog.fairBucket+"Images/"+url;
-            this.getBanner().down("image").setSrc(url);
+
+            var banner = this.getBanner();
+            var img = banner.down("image");
+
+            var container = banner.down("#banner-message-container");
+            var msg = banner.down("#banner-message");
+            var s = url.toLowerCase();
+            if (s.endsWith("jpg") || s.endsWith("png")) {
+                url= MDanalog.fairBucket+"Images/"+url;
+                container.hide();
+                img.setSrc(url);
+                img.show();
+            } else {
+                img.hide();
+                container.show();
+                msg.setHtml(url);
+            }
+
         }
 
 
@@ -74560,7 +74581,6 @@ Ext.define('MDanalog.view.MainView', {
                         cls: 'center',
                         docked: 'bottom',
                         height: 40,
-                        html: 'באנר פרסומת',
                         itemId: 'banner',
                         layout: 'fit',
                         items: [
@@ -74569,6 +74589,23 @@ Ext.define('MDanalog.view.MainView', {
                                 height: 201,
                                 maxHeight: 40,
                                 src: '#'
+                            },
+                            {
+                                xtype: 'container',
+                                itemId: 'banner-message-container',
+                                layout: {
+                                    type: 'hbox',
+                                    align: 'center',
+                                    pack: 'center'
+                                },
+                                items: [
+                                    {
+                                        xtype: 'container',
+                                        flex: 1,
+                                        html: 'tttt',
+                                        itemId: 'banner-message'
+                                    }
+                                ]
                             }
                         ]
                     },
@@ -77286,6 +77323,11 @@ Ext.application({
     name: 'MDanalog',
 
     launch: function() {
+        String.prototype.endsWith = function(suffix) {
+            return this.indexOf(suffix, this.length - suffix.length) !== -1;
+        };
+
+
         document.addEventListener("deviceready",function () {
             document.addEventListener("backbutton",function () {
                 var c = MDanalog.getController("MainView");
@@ -77472,6 +77514,7 @@ Ext.application({
                     Ext.getStore("Manufacts").setData(res.data);
                 }
             });
+            MDanalog.setBanner();
         };
 
 
