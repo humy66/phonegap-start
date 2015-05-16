@@ -74372,33 +74372,41 @@ Ext.define('MDanalog.controller.Banner', {
 
     },
 
-    setBanner: function(Banners) {
-        if (Banners) {
-            MDanalog.Banners = Banners;
+    setBanner: function(IBanners) {
+        if (IBanners) {
+            MDanalog.IBanners = IBanners;
         } else
         {
-            Banners = MDanalog.Banners;
+            if (MDanalog.IBanners) {
+                IBanners = MDanalog.IBanners;
+            } else
+            {
+                return;
+            }
+
         }
         var f = MDanalog.getFairId();
-        var url = Banners[f-1];
-        if (url != MDanalog.Banner) {
-            MDanalog.Banner = url;
+        var IBanner = IBanners[f-1];
+
+        if (IBanner.BannerId != MDanalog.BannerId) {
+            MDanalog.BannerId = IBanner.BannerId;
+            MDanalog.BannerName = IBanner.BannerName;
+            MDanalog.CampaignId = IBanner.CampaignId;
 
             var banner = this.getBanner();
-            var img = banner.down("image");
-
+            var img = banner.down("#banner-image");
             var container = banner.down("#banner-message-container");
             var msg = banner.down("#banner-message");
-            var s = url.toLowerCase();
+            var s = IBanner.Banner.toLowerCase();
             if (s.endsWith("jpg") || s.endsWith("png")) {
-                url= MDanalog.fairBucket+"Images/"+url;
+                var url= MDanalog.fairBucket+"Images/"+IBanner.Banner;
+                img.show();
                 container.hide();
                 img.setSrc(url);
-                img.show();
             } else {
                 img.hide();
                 container.show();
-                msg.setHtml(url);
+                msg.setHtml(IBanner.Banner);
             }
 
         }
@@ -74587,6 +74595,7 @@ Ext.define('MDanalog.view.MainView', {
                             {
                                 xtype: 'image',
                                 height: 201,
+                                itemId: 'banner-image',
                                 maxHeight: 40,
                                 src: '#'
                             },
@@ -74602,7 +74611,6 @@ Ext.define('MDanalog.view.MainView', {
                                     {
                                         xtype: 'container',
                                         flex: 1,
-                                        html: 'tttt',
                                         itemId: 'banner-message'
                                     }
                                 ]
@@ -75888,7 +75896,7 @@ Ext.define('MDanalog.view.HelpPanel', {
 
     config: {
         height: '100%',
-        html: '<div style="direction:rtl;">  <h3>דאנאלוג - לאיתור ספרים</h3> <br> <h3 ">מידע כללי</h3> <p>דאנאלוג הוא בסיס הנתונים של קטלוג הספרים העבריים של דאנא מערכות בע"מ שהחל את דרכו ב 1982 עם המצאת הדאנאקוד.</p> <p>למשך שבוע הספר הישום פתוח לקהל הרחב עם הרחבות לטובת ירידי שבוע הספר, כמו אפשרות לבחור את היריד בו אתה נמצא, מפה של היריד, וציון הדוכן שבו אפשר יהיה למצוא את הספר שאותר בישום.</p> <p>במשך שאר ימי השנה אפשר להמשיך ולהשתמש בישום לאיתור ספרים , יצרנים, מחירים, ובעתיד גם אתרי מכירה  בהם הפריט המבוקש נמצא במלאי.</p> <p>השימוש ללא תשלום במשך השנה יגביל את המשתמש למספר פעולות חיפוש לתקופה. משתמשים עסקיים יכלים ליצור קשר עם דאנא לרכישת מנוי ללא הגבלה.</p><br> <h3>הסבר למשתמש</h3><br> <h3>בחירת יריד</h3> <p>הקשה על השדה בו מוצג שם היריד תפתח רשימה של 3 ירידי שבוע הספר, אפשר לסמן את היריד הרצוי ולהקיש על מקש בחר  </p><br> <h3>הצגת מפה</h3> <p>משמאל לשם היריד קיים כפתור מפה. מפת היריד מציגה את מיקום הדוכנים של היצרנים השונים, לכל דוכן יש קוד זיהוי. כל ספר שיוצג ברשימת הספרים שאותרו יציג גם את מספר היצרן, שם היצרן, וקוד הזהוי של הדוכן בו מציג היצרן. ליצרנים שאינם ביריד יהיה רשום לא ביריד  </p><br> <h3>איתור מוציא לאור</h3><p>אם ידוע שם הוצאת ספרים או חלק מהשם אפשר להכנס לאיתור מוציא לאור ולהקליד  חלק של השם. על המסך תופיעה רשימת יצרנים המתאימים למחרוזת שהוקשה וליד כל יצרן יוצג קוד הדוכן שבו הוא מציג. </p> <br> <h3>חזרה ממסכים</h3> <p>החזרה ממסכים נעשית על ידי מקש חזרה בסרגל השמאלי העליון  </p> <br> <h3>איתור ספרים</h3> <p>בראש הדף קיים שדה להקשת מחרוזת לאיתור ספרים. המחרוזת תכיל מילות מפתח לפיהן יתבצע נסיון האיתור. מקש איתור מתחיל את תהליך האיתור. יאותרו רק פריטים שכל מילות המפתח מופיעות בהם. האיתור מחפש את המילים בשם הספר, שם המחבר, ושם היצרן </p> <p>כמובן שככל שיוקשו יותר מילים כך תצומצם רשימת המאותרים. אין חשיבות לסדר בין המילים, אין צורך להקיש ה הידיעה ו החיבור וכד\', ההיפך הוא הנכון, הוספת אותיות חיבור תגביל את החיפוש למילים עם אותיות החיבור בלבד.</p>  <p>כל ספר שאותר מציג גם את שם היצרן, שם המחבר, מספר היצרן, ודוכן היצרן אם הוא נמצא ביריד.</p> <p>הקשה על תמונה, אם זו קיימת, תביא תמונת כריכה קדמית מוגדלת של הספר. אם בסרגל התחתון בתמונת הכריכה יהיה מקש גב הספר, הקשה עליו תביא גם תמונת גב הספר.חזרה למסך הראשי - במקש חזרה.</p> <br> <h3>הודעות ופרסומות</h3> <br>  <p>בפס התחתון של המסך יופיעו פרסומים של יצרנים והודעות מטעם מנהלי היריד. ההודעות אינן מהבהבות ואינן נעות כדי למנוע הפרעה מיותרת למשתמש</p> <br> <h3>ליצירת קשר</h3> <p>אתר דאנא: <a href="http://www.danacode.co.il"> danacode.co.il</a></p> <p> דואר אלקטרוני: <br>tal AT danacodec.co.il</p> <p>טל. 03-6162119</p> </div>',
+        html: '<div style="direction:rtl;">  <h3>דאנאלוג - לאיתור ספרים</h3> <br> <h3 ">מידע כללי</h3> <p>דאנאלוג הוא בסיס הנתונים של קטלוג הספרים העבריים של דאנא מערכות בע"מ שהחל את דרכו ב 1982 עם המצאת הדאנאקוד.</p> <p>למשך שבוע הספר הישום פתוח לקהל הרחב עם הרחבות לטובת ירידי שבוע הספר, כמו אפשרות לבחור את היריד בו אתה נמצא, מפה של היריד, וציון הדוכן שבו אפשר יהיה למצוא את הספר שאותר בישום.</p> <p>במשך שאר ימי השנה אפשר להמשיך ולהשתמש בישום לאיתור ספרים , יצרנים, מחירים, ובעתיד גם אתרי מכירה  בהם הפריט המבוקש נמצא במלאי.</p> <p>השימוש ללא תשלום במשך השנה יגביל את המשתמש למספר פעולות חיפוש לתקופה. משתמשים עסקיים יכלים ליצור קשר עם דאנא לרכישת מנוי ללא הגבלה.</p><br> <h3>הסבר למשתמש</h3><br> <h3>בחירת יריד</h3> <p>הקשה על השדה בו מוצג שם היריד תפתח רשימה של 3 ירידי שבוע הספר, אפשר לסמן את היריד הרצוי ולהקיש על מקש בחר  </p><br> <h3>הצגת מפה</h3> <p>משמאל לשם היריד קיים כפתור מפה. מפת היריד מציגה את מיקום הדוכנים של היצרנים השונים, לכל דוכן יש קוד זיהוי. כל ספר שיוצג ברשימת הספרים שאותרו יציג גם את מספר היצרן, שם היצרן, וקוד הזהוי של הדוכן בו מציג היצרן. ליצרנים שאינם ביריד יהיה רשום לא ביריד  </p><br> <h3>איתור מוציא לאור</h3><p>אם ידוע שם הוצאת ספרים או חלק מהשם אפשר להכנס לאיתור מוציא לאור ולהקליד  חלק של השם. על המסך תופיעה רשימת יצרנים המתאימים למחרוזת שהוקשה וליד כל יצרן יוצג קוד הדוכן שבו הוא מציג. </p> <br> <h3>חזרה ממסכים</h3> <p>החזרה ממסכים נעשית על ידי מקש חזרה בסרגל השמאלי העליון  </p> <br> <h3>איתור ספרים</h3> <p>בראש הדף קיים שדה להקשת מחרוזת לאיתור ספרים. המחרוזת תכיל מילות מפתח לפיהן יתבצע נסיון האיתור. מקש איתור מתחיל את תהליך האיתור. יאותרו רק פריטים שכל מילות המפתח מופיעות בהם. האיתור מחפש את המילים בשם הספר, שם המחבר, ושם היצרן </p> <p>כמובן שככל שיוקשו יותר מילים כך תצומצם רשימת המאותרים. אין חשיבות לסדר בין המילים, אין צורך להקיש ה הידיעה ו החיבור וכד\', ההיפך הוא הנכון, הוספת אותיות חיבור תגביל את החיפוש למילים עם אותיות החיבור בלבד.</p>  <p>כל ספר שאותר מציג גם את שם היצרן, שם המחבר, מספר היצרן, ודוכן היצרן אם הוא נמצא ביריד.</p> <p>הקשה על תמונה, אם זו קיימת, תביא תמונת כריכה קדמית מוגדלת של הספר. אם בסרגל התחתון בתמונת הכריכה יהיה מקש גב הספר, הקשה עליו תביא גם תמונת גב הספר.חזרה למסך הראשי - במקש חזרה.</p> <br> <h3>הודעות ופרסומות</h3> <br>  <p>בפס התחתון של המסך יופיעו פרסומים של יצרנים והודעות מטעם מנהלי היריד. ההודעות אינן מהבהבות ואינן נעות כדי למנוע הפרעה מיותרת למשתמש. <br>רמז - אם ההודעה ארוכה מדי ונחתכת, אפשר להטות את המכשיר למצב אופקי ולקבל שדה הודעות ארוך יותר.</p> <br> <h3>ליצירת קשר</h3> <p>אתר דאנא: <a href="http://www.danacode.co.il"> danacode.co.il</a></p> <p> דואר אלקטרוני: <br>tal AT danacodec.co.il</p> <p>טל. 03-6162119</p> </div>',
         id: 'help-panel',
         itemId: 'help-panel',
         style: 'direction:rtl',
@@ -76020,14 +76028,20 @@ Ext.define('MDanalog.controller.Main', {
         var carousel = p.down("carousel");
         carousel.removeAll(true);
 
+
+        var DanaCode = record.get("DanaCode");
+        var BookName = record.get("BookName");
+        MDanalog.post("LogEvent",{
+            Event    : "ItemClick",
+            DanaCode : DanaCode,
+            BookName : BookName,
+            uuid:Ext.device.Device.uuid,
+            fairId:MDanalog.getFairId()
+        });
+
+
         if (a3||b3) {
-            var DanaCode = record.get("DanaCode");
             this.setDanaCode(DanaCode);
-
-            var BookName = record.get("BookName");
-
-
-            console.debug("onCoverShow");
 
             var nav = this.getMainView();
             nav.push(p);
@@ -76053,7 +76067,7 @@ Ext.define('MDanalog.controller.Main', {
                 {
                     src = "http://books.danacode.co.il/books/images/"+dd[0]+"/"+DanaCode+"b3.jpg";
                     f = Ext.widget("pinchzoomimage");
-                    f.initImage(src);
+                    f.applySrc(src);
                     carousel.add(f);
 
                     //b.setSrc(src);
@@ -77362,6 +77376,8 @@ Ext.application({
 
 
         MDanalog.version = "i-Danalog";
+        MDanalog.versionNumber = "1";
+
         MDanalog.url = "../Danalog.ashx";
         if (document.location.protocol=="file:")
         {
@@ -77423,7 +77439,10 @@ Ext.application({
 
         Ext.Ajax.on("beforerequest",function(conn,options,eOpts) {
             if (options.params){
-                Ext.apply(options.params,{version:MDanalog.version,uuid:Ext.device.Device.uuid,fairId:MDanalog.getFairId()});
+                Ext.apply(options.params,{
+                    version:MDanalog.version,
+                    uuid:Ext.device.Device.uuid,
+                    fairId:MDanalog.getFairId()});
             } else
             {
                 options.params={version:MDanalog.version};
@@ -77549,12 +77568,29 @@ Ext.application({
             }
         };
 
-        MDanalog.BannerTimeoutMS = 1000 * 20;
+        MDanalog.BannerTimeoutMS = 1000 * 15;
         MDanalog.getBanners = function () {
-            MDanalog.get("GetBanners",{fairId:MDanalog.getFairId()},function(o) {
+            MDanalog.get("GetBanners",
+                {
+                    fairId:MDanalog.getFairId(),
+                    uuid:Ext.device.Device.uuid,
+                    BannerId   : MDanalog.BannerId,
+                    BannerName : MDanalog.BannerName,
+                    CampaignId : MDanalog.CampaignId,
+                    versionNumber : MDanalog.versionNumber
+                },function(o) {
                 if (o.success) {
-                    MDanalog.setBanner(o.Banners);
+                    MDanalog.setBanner(o.IBanners);
                     MDanalog.BannerTimeoutMS = o.BannerTimeoutMS;
+                    if (!Ext.isEmpty(o.Msg))
+                    {
+                        Ext.Msg.alert(o.Header,o.Msg,function(){
+                            if (o.reload) {
+                                window.location.reload();
+                            }
+                        });
+                    }
+
                 }
             });
             setTimeout(function(){MDanalog.getBanners();},MDanalog.BannerTimeoutMS);
