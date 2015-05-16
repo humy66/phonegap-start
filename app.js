@@ -74507,12 +74507,14 @@ Ext.define('MDanalog.view.MainView', {
     config: {
         fullscreen: true,
         itemId: 'main-view',
+        scrollable: false,
         defaultBackButtonText: 'חזרה',
         items: [
             {
                 xtype: 'formpanel',
                 itemId: 'main-panel',
                 layout: 'vbox',
+                scrollable: false,
                 enableSubmissionForm: false,
                 items: [
                     {
