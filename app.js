@@ -77416,6 +77416,10 @@ Ext.application({
 
         MDanalog.showPanel = function(panel) {
 
+           if (StatusBar) {
+                StatusBar.hide();
+           }
+
            panel.show();
            var found = false;
            Ext.each(pstack,function(p){

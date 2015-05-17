@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget 
-    id="com.inbal.danalog"
-    version="0.0.2" 
+    id="mobile.client.Danalog"
+    version="0.0.3" 
     xmlns="http://www.w3.org/ns/widgets" 
     xmlns:gap="http://phonegap.com/ns/1.0">
     
@@ -49,11 +49,18 @@
     <icon gap:platform="winphone" src="res/icon/windows-phone/icon-48.png" />
     <icon gap:platform="winphone" gap:role="background" src="res/icon/windows-phone/icon-173.png" />
    
+    <gap:config-file platform="ios" parent="UIStatusBarHidden"><true/></gap:config-file>
+    <gap:config-file platform="ios" parent="UIViewControllerBasedStatusBarAppearance"><false/></gap:config-file>
+
+    <feature name="StatusBar">
+            <param name="ios-package" value="CDVStatusBar" onload="true" />
+    </feature>
 
     <gap:splash gap:platform="blackberry" src="res/screen/blackberry/screen-225.png" />
     <gap:splash gap:platform="winphone" src="res/screen/windows-phone/screen-portrait.jpg" />
 	
 	<gap:plugin name="org.apache.cordova.device" />
+    <gap:plugin name="com.phonegap.plugin.statusbar" />
 
     <access origin="*" />
 
