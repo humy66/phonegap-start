@@ -34,17 +34,18 @@
     <icon gap:platform="blackberry" gap:state="hover" src="res/icon/blackberry/icon-80.png" />
     
 
-    <icon gap:platform="ios" height="57" src="resources/icons/57X57.png" width="57" />
-    <icon gap:platform="ios" height="72" src="resources/icons/72X72.png" width="72" />
-    <icon gap:platform="ios" height="114" src="resources/icons/114X114.png" width="114" />
-    <icon gap:platform="ios" height="144" src="resources/icons/144X144.png" width="144" />
+    <icon gap:platform="ios" height="76" src="resources/icons/76.png" width="76" />
+    <icon gap:platform="ios" height="120" src="resources/icons/120.png" width="120" />
+    <icon gap:platform="ios" height="152" src="resources/icons/152.png" width="152" />
+    <icon gap:platform="ios" height="180" src="resources/icons/180.png" width="180" />
 
-    <gap:splash gap:platform="ios" height="480" src="resources/startup/Default.png" width="320" />
-    <gap:splash gap:platform="ios" height="960" src="resources/startup/Default@2X.png" width="640" />
-    <gap:splash gap:platform="ios" height="1136" src="resources/startup/Default-568h@2X.png" width="640" />
-    <gap:splash gap:platform="ios" height="1024" src="resources/startup/Default-iOS7-Portrait.png" width="768" />
-    <gap:splash gap:platform="ios" height="768" src="resources/startup/Default-iOS7-Landscape.png" width="1024" />
-    
+
+    <gap:splash gap:platform="ios" height="480" src="resources/startup/320X480.png" width="320" />
+    <gap:splash gap:platform="ios" height="960" src="resources/startup/640X960.png" width="640" />
+    <gap:splash gap:platform="ios" height="1136" src="resources/startup/640X1136.png" width="640" />
+    <gap:splash gap:platform="ios" height="1024" src="resources/startup/768X1024.png" width="768" />
+    <gap:splash gap:platform="ios" height="768" src="resources/startup/1024X768.png" width="1024" />
+
     <icon gap:platform="webos" src="res/icon/webos/icon-64.png" />
     <icon gap:platform="winphone" src="res/icon/windows-phone/icon-48.png" />
     <icon gap:platform="winphone" gap:role="background" src="res/icon/windows-phone/icon-173.png" />
