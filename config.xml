@@ -26,7 +26,7 @@
     <preference name="android-installLocation" value="auto" />
 
     
-    <icon src="icon.png" gap:role="default" />
+    <icon gap:platform="android" src="icon.png" gap:role="default" />
     
     
     
@@ -34,6 +34,8 @@
     <icon gap:platform="blackberry" gap:state="hover" src="res/icon/blackberry/icon-80.png" />
     
 
+	<icon gap:platform="ios" height="57" src="resources/icons/icon.png" width="57" />
+	<icon gap:platform="ios" height="72" src="resources/icons/72.png" width="72" />
     <icon gap:platform="ios" height="76" src="resources/icons/76.png" width="76" />
     <icon gap:platform="ios" height="120" src="resources/icons/120.png" width="120" />
     <icon gap:platform="ios" height="152" src="resources/icons/152.png" width="152" />
