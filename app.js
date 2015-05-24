@@ -72325,7 +72325,7 @@ Ext.define('MDanalog.controller.Main', {
             if (dd.length>1) {
                 if (a3)
                 {
-                    var src = "http://books.danacode.co.il/books/images/"+dd[0]+"/"+DanaCode+"a3.jpg";
+                    var src = MDanalog.BookImages+dd[0]+"/"+DanaCode+"a3.jpg";
                     var f = Ext.widget("pinchzoomimage");
                     f.applySrc(src);
                     carousel.add(f);
@@ -72339,7 +72339,7 @@ Ext.define('MDanalog.controller.Main', {
 
                 if (b3)
                 {
-                    src = "http://books.danacode.co.il/books/images/"+dd[0]+"/"+DanaCode+"b3.jpg";
+                    src = MDanalog.BookImages+dd[0]+"/"+DanaCode+"b3.jpg";
                     f = Ext.widget("pinchzoomimage");
                     f.applySrc(src);
                     carousel.add(f);
@@ -74321,7 +74321,9 @@ Ext.define('MDanalog.model.Item', {
                     if (!Ext.isEmpty(d)) {
                         var dd = d.split("-");
                         if (dd.length>1) {
-                            result = "http://books.danacode.co.il/books/images/"+dd[0]+"/"+d+"a1.jpg";
+                            //result = "http://books.danacode.co.il/books/images/"+dd[0]+"/"+d+"a1.jpg";
+                            result = MDanalog.BookImages+dd[0]+"/"+d+"a1.jpg";
+                            //result = "http://images.danacode.co.il/books/images/"+dd[0]+"/"+d+"a1.jpg";
                         }
                     }
                     return result;
@@ -77686,6 +77688,8 @@ Ext.application({
         }
 
         MDanalog.fairBucket = "http://s3-eu-west-1.amazonaws.com/fairweek/";
+        MDanalog.BookImages = "http://danalog.s3-website-eu-west-1.amazonaws.com/books/images/";
+
         MDanalog.isFairWeek = false;
 
         MDanalog.Banners = "";
