@@ -70372,6 +70372,7 @@ Ext.define('MDanalog.view.MainView', {
 
     config: {
         fullscreen: true,
+        height: '100%',
         itemId: 'main-view',
         scrollable: false,
         defaultBackButtonText: 'חזרה',
@@ -70425,7 +70426,7 @@ Ext.define('MDanalog.view.MainView', {
                             '    </div>',
                             '    <div style="display:inline;">',
                             '        ',
-                            '        <div style="font-weight:bold">{BookName}</div>',
+                            '        <div style="font-weight:bold;overflow:hidden;white-space:nowrap;">{BookName}</div>',
                             '        <div>',
                             '            <div style="display:inline;font-size:large;width:100px;">{price}</div>',
                             '            <div style="display:inline;font-size:small">{manufactname}</div>',
