@@ -73828,37 +73828,37 @@ Ext.define('MDanalog.controller.Banner', {
         var f = MDanalog.getFairId();
         var IBanner = IBanners[f-1];
 
-        if (IBanner.BannerId != MDanalog.BannerId) {
-            MDanalog.BannerId = IBanner.BannerId;
-            MDanalog.BannerName = IBanner.BannerName;
-            MDanalog.CampaignId = IBanner.CampaignId;
-            MDanalog.BannerLink = IBanner.BannerLink;
+        MDanalog.BannerId = IBanner.BannerId;
+        MDanalog.BannerName = IBanner.BannerName;
+        MDanalog.CampaignId = IBanner.CampaignId;
+        MDanalog.BannerLink = IBanner.BannerLink;
 
-            var banner = this.getBanner();
-            var img = banner.down("#banner-image");
-            var container = banner.down("#banner-message-container");
-            var w = container.element.getWidth();
-            console.debug("width=",w);
-            var msg = banner.down("#banner-message");
-            var s = IBanner.Banner.toLowerCase();
-            if (s.endsWith("jpg") || s.endsWith("png")) {
-                var url= MDanalog.fairBucket+"Images/"+IBanner.Banner;
-                img.show();
-                container.hide();
-                img.setSrc(url);
+        var banner = this.getBanner();
+        var w = banner.element.getWidth();
 
+        var img = banner.down("#banner-image");
+        var container = banner.down("#banner-message-container");
 
-                img.setHeight(w/8);
-                img.setWidth(w);
+        //console.debug("width=",w);
+        var msg = banner.down("#banner-message");
+        var s = IBanner.Banner.toLowerCase();
+        if (s.endsWith("jpg") || s.endsWith("png")) {
+            var url= MDanalog.fairBucket+"Images/"+IBanner.Banner;
+            img.show();
+            container.hide();
+            img.setSrc(url);
 
 
-            } else {
-                img.hide();
-                container.show();
-                msg.setHtml(IBanner.Banner);
-            }
+            img.setHeight(w/8);
+            img.setWidth(w);
 
+
+        } else {
+            img.hide();
+            container.show();
+            msg.setHtml(IBanner.Banner);
         }
+
 
 
         //.setHtml("<iframe src='"+url+"' width='100%' height='100%'><p>Your browser does not support iframes.</p> </iframe>");
@@ -77679,13 +77679,13 @@ Ext.application({
 
 
         MDanalog.version = "i-Danalog";
-        MDanalog.versionNumber = "1";
+        MDanalog.versionNumber = "2";
 
         MDanalog.url = "../Danalog.ashx";
         if (document.location.protocol=="file:")
         {
             //MDanalog.url = "http://gov-mobile.danacode.co.il/bos-8/Danalog.ashx";
-            MDanalog.url = "http://mobile.danacode.co.il/bos-8/Danalog.ashx";
+            MDanalog.url = "http://mobile.danalog.co.il/bos-8/Danalog.ashx";
         }
 
         MDanalog.fairBucket = "http://s3-eu-west-1.amazonaws.com/fairweek/";
