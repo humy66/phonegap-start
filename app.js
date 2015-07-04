@@ -70509,12 +70509,14 @@ Ext.define('MDanalog.view.MainView', {
                                     var url = MDanalog.fairBucket + i + "/map.jpg";
 
                                 },
+                                hidden: true,
                                 itemId: 'fair-map-show-button',
                                 iconCls: 'locate',
                                 text: ''
                             },
                             {
                                 xtype: 'selectfield',
+                                hidden: true,
                                 itemId: 'fair-select',
                                 width: 120,
                                 inputCls: 'right',
@@ -72275,18 +72277,27 @@ Ext.define('MDanalog.controller.Main', {
         if (!Ext.isEmpty(words)) {
             store.load({
                 params : {words:words},
-                callback : function (records) {
-                    var even = true;
-                    records.forEach(function(record) {
-                        if (even) {record.set("cls","x-list-even");}
-                        else {record.set("cls","x-list-odd");}
-                        even = !even;
-                    });
-                    if (records.length>50) {
-                        store.removeAt(50);
-                        morelabel.show();
+                callback : function (records,operation,success) {
+                    if (!success) {
+                        var res = Ext.decode(operation.getResponse().responseText);
+                        Ext.defer(function(){
+                            Ext.Msg.alert("",res.Msg);
+                        },100);
+
+                    } else
+                    {
+                        var even = true;
+                        records.forEach(function(record) {
+                            if (even) {record.set("cls","x-list-even");}
+                            else {record.set("cls","x-list-odd");}
+                            even = !even;
+                        });
+                        if (records.length>50) {
+                            store.removeAt(50);
+                            morelabel.show();
+                        }
+                        fld.focus();
                     }
-                    fld.focus();
                 }
             });
         }
@@ -72543,6 +72554,7 @@ Ext.define('MDanalog.view.SearchManufact', {
                         if (Ext.isEmpty(b)) {
                             b = 'לא ביריד';
                         }
+                        b = "";
                         idx = n.indexOf(s);
 
                         if (idx>=0) {
@@ -72788,11 +72800,6 @@ Ext.define('MDanalog.view.MainMenu', {
                 xtype: 'button',
                 itemId: 'menu-register',
                 text: 'רישום'
-            },
-            {
-                xtype: 'button',
-                itemId: 'menu-campaign',
-                text: 'הפירסומים שלי'
             }
         ]
     }
@@ -72906,10 +72913,7 @@ Ext.define('MDanalog.controller.MainView', {
     onSearchManufactShow: function(button, e, eOpts) {
         var nav = this.getMainView();
         var p = this.getSearchManufact();
-        console.debug("b4 push");
         nav.push(p);
-        console.debug("after push");
-
         this.setTitle("מוציאים לאור ביריד");
     },
 
@@ -77681,10 +77685,10 @@ Ext.application({
         MDanalog.version = "i-Danalog";
         MDanalog.versionNumber = "2";
 
-        MDanalog.url = "../Danalog.ashx";
+        MDanalog.url = "../Danalog02.ashx";
         if (document.location.protocol=="file:")
         {
-            //MDanalog.url = "http://gov-mobile.danacode.co.il/bos-8/Danalog.ashx";
+            //MDanalog.url = "http://gov-mobile.danacode.co.il/bos-8/Danalog02.ashx";
             MDanalog.url = "http://mobile.danalog.co.il/bos-8/Danalog.ashx";
         }
 
