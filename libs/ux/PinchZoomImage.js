@@ -1,4 +1,4 @@
-/**
+function _bb52419f2077db8ce660a85756f07a7a445271d9(){};/**
  * Pinch Zoom Image for Sencha Touch 2
  * 
  * requieres the Transform.js file for the transformation of canvas

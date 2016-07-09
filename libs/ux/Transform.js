@@ -1,4 +1,4 @@
-/**
+function _245165f61060f55d4648ad67b9e168d59122bab9(){};/**
  * Transformer for Sencha Touch 2
  *  
  * @author Sang Oh <swoh77@gmail.com>
