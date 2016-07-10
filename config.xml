@@ -62,8 +62,8 @@
     <gap:splash gap:platform="blackberry" src="res/screen/blackberry/screen-225.png" />
     <gap:splash gap:platform="winphone" src="res/screen/windows-phone/screen-portrait.jpg" />
 	
-	<gap:plugin name="org.apache.cordova.device" />
-    <gap:plugin name="com.phonegap.plugin.statusbar" />
+	<gap:plugin name="cordova-plugin-device" />
+    <gap:plugin name="cordova-plugin-statusbar" />
     <gap:plugin name="cordova-plugin-inappbrowser" />
 
     <access origin="*" />
