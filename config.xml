@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget 
     id="mobile.client.Danalog"
-    version="1.0.9" 
+    version="1.0.10" 
     xmlns="http://www.w3.org/ns/widgets" 
     xmlns:gap="http://phonegap.com/ns/1.0">
     
@@ -23,6 +23,7 @@
     <preference name="disable-cursor" value="false" />
     <preference name="android-minSdkVersion" value="16" />
     <preference name="android-installLocation" value="auto" />
+    <preference name="OverrideUserAgent" value="Mozilla/5.0 My Browser"/>
 
     
     <icon gap:platform="android" src="icon.png" gap:role="default" />
