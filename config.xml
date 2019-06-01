@@ -61,9 +61,9 @@
     <gap:splash gap:platform="blackberry" src="res/screen/blackberry/screen-225.png" />
     <gap:splash gap:platform="winphone" src="res/screen/windows-phone/screen-portrait.jpg" />
 	
-    <gap:plugin name="cordova-plugin-device" />
+    <gap:plugin name="cordova-plugin-device" source="npm"/>
     <gap:plugin name="cordova-plugin-whitelist" source="npm" />
-    <gap:plugin name="cordova-plugin-inappbrowser" />
+    <gap:plugin name="cordova-plugin-inappbrowser"  source="npm" />
 
     <access origin="*" />
 
