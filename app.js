@@ -10176,7 +10176,7 @@ Ext.apply(Ext, {
 
             alert("documentReady");
 
-            if ((Ext.browser.is.WebWorks || Ext.browser.is.PhoneGap) && !Ext.os.is.Desktop) {
+            if (true || (Ext.browser.is.WebWorks || Ext.browser.is.PhoneGap) && !Ext.os.is.Desktop) {
                 if (!Ext.readyListenerAttached) {
                     Ext.readyListenerAttached = true;
                     alert("documentReady  1");
@@ -10184,7 +10184,6 @@ Ext.apply(Ext, {
                 }
             }
             else {
-                    alert("documentReady  2");
                 var readyStateRe =  (/MSIE 10/.test(navigator.userAgent)) ? /complete|loaded/ : /interactive|complete|loaded/;
                 if (document.readyState.match(readyStateRe) !== null) {
                     triggerFn();
