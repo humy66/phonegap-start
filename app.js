@@ -6,6 +6,8 @@ function _d711e664e23b7eff5fe74631aad90f41b17a574a(){};//@tag foundation,core
  * @singleton
  */
 (function() {
+    alert("debug 1");
+    
     var global = this,
         objectPrototype = Object.prototype,
         toString = objectPrototype.toString,
