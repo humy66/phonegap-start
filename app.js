@@ -10174,8 +10174,12 @@ Ext.apply(Ext, {
                 scope: scope
             });
 
+
+            alert(JSON.stringify(Ext.browser));
+
+
             
-            if (true || (Ext.browser.is.WebWorks || Ext.browser.is.PhoneGap) && !Ext.os.is.Desktop) {
+            if ((Ext.browser.is.WebWorks || Ext.browser.is.PhoneGap) && !Ext.os.is.Desktop) {
                 if (!Ext.readyListenerAttached) {
                     Ext.readyListenerAttached = true;
                     document.addEventListener(Ext.browser.is.PhoneGap ? 'deviceready' : 'webworksready', triggerFn, false);
