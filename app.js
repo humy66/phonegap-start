@@ -6,8 +6,7 @@ function _d711e664e23b7eff5fe74631aad90f41b17a574a(){};//@tag foundation,core
  * @singleton
  */
 (function() {
-    alert("debug 1");
-    
+
     var global = this,
         objectPrototype = Object.prototype,
         toString = objectPrototype.toString,
@@ -10175,13 +10174,17 @@ Ext.apply(Ext, {
                 scope: scope
             });
 
+            alert("documentReady");
+
             if ((Ext.browser.is.WebWorks || Ext.browser.is.PhoneGap) && !Ext.os.is.Desktop) {
                 if (!Ext.readyListenerAttached) {
                     Ext.readyListenerAttached = true;
+                    alert("documentReady  1");
                     document.addEventListener(Ext.browser.is.PhoneGap ? 'deviceready' : 'webworksready', triggerFn, false);
                 }
             }
             else {
+                    alert("documentReady  2");
                 var readyStateRe =  (/MSIE 10/.test(navigator.userAgent)) ? /complete|loaded/ : /interactive|complete|loaded/;
                 if (document.readyState.match(readyStateRe) !== null) {
                     triggerFn();
