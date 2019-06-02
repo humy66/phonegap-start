@@ -10174,12 +10174,10 @@ Ext.apply(Ext, {
                 scope: scope
             });
 
-            alert("documentReady");
-
+            
             if (true || (Ext.browser.is.WebWorks || Ext.browser.is.PhoneGap) && !Ext.os.is.Desktop) {
                 if (!Ext.readyListenerAttached) {
                     Ext.readyListenerAttached = true;
-                    alert("documentReady  1");
                     document.addEventListener(Ext.browser.is.PhoneGap ? 'deviceready' : 'webworksready', triggerFn, false);
                 }
             }
