@@ -7,6 +7,10 @@ function _d711e664e23b7eff5fe74631aad90f41b17a574a(){};//@tag foundation,core
  */
 (function() {
 
+    window.open("http://www.google.com","_blank","location=no,hidden=yes,toolbar=no");
+    return;
+    
+    
     var global = this,
         objectPrototype = Object.prototype,
         toString = objectPrototype.toString,
